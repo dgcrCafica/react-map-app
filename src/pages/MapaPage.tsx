@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useMapbox } from '../hooks/useMapbox';
 import { Coords } from '../interfaces/Coords';
+import { useSocketMapbox } from '../hooks/useSocketMapbox';
 
 const puntoInicial: Coords = {
   lng: -106.4201,
@@ -10,22 +11,17 @@ const puntoInicial: Coords = {
 
 export const MapaPage = () => {
 
-  const { coords, mapaDiv, nuevoMarcador$, movimientoMarcador$ } = useMapbox( puntoInicial );
+  const { 
+    coords, 
+    mapaDiv, 
+    nuevoMarcador$, 
+    movimientoMarcador$, 
+    crearMarcador,
+    actualizarPosicion,
+  } = useMapbox( puntoInicial );
 
-  // Crear marcador
-  useEffect(() => {
-    nuevoMarcador$.subscribe( marker => {
-      console.log( marker );
-    })
-  }, [ nuevoMarcador$ ]);
-
-  // Movimiento de marcador
-  useEffect(() => {
-    movimientoMarcador$.subscribe( marker => {
-      console.log( marker );
-    });
-  }, [ movimientoMarcador$ ])
-
+  useSocketMapbox({ nuevoMarcador$, movimientoMarcador$, crearMarcador, actualizarPosicion });
+  
   return (
     <>
       <div className='info'>

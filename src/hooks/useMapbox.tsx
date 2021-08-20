@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import { v4 } from 'uuid';
 import { Subject } from 'rxjs';
 import { Coords } from '../interfaces/Coords';
+import { Marcador } from '../interfaces/Marcador';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiZGdjcmNhZmljYSIsImEiOiJja3NmODU5bXUxOGM3Mm9tczBtYWVncTdjIn0.K5uJI0GyQ4AU613-W0TTnw';
 
@@ -26,10 +27,19 @@ export const useMapbox = ( puntoInicial: Coords ) => {
   const movimientoMarcador = useRef( new Subject() );
   const nuevoMarcador = useRef( new Subject() );
 
-  const crearMarcador = useCallback(( ev: mapboxgl.MapMouseEvent & mapboxgl.EventData ) => {
+  const actualizarPosicion = useCallback(( { id, lng, lat }: Marcador ) => {
+    const index = marcadores.current.findIndex( marcador => marcador.id === id );
+
+    if( index > -1 ) {
+      marcadores.current[ index ].setLngLat([ lng, lat ]);
+    }
+  }, [] );
+
+  const crearMarcador = useCallback(( ev: (mapboxgl.MapMouseEvent & mapboxgl.EventData) | null, marcador?: Marcador ) => {
     if( mapa.current ) {
-      const { lat, lng } = ev.lngLat;
-      const marker = new CustomMarker( v4() );
+      const lat = marcador ? marcador.lat : ev!.lngLat.lat;
+      const lng = marcador ? marcador.lng : ev!.lngLat.lng;
+      const marker = new CustomMarker( marcador?.id ?? v4() );
 
       marker.setLngLat([ lng, lat ]);
       marker.addTo( mapa.current );
@@ -37,11 +47,13 @@ export const useMapbox = ( puntoInicial: Coords ) => {
 
       marcadores.current = [ ...marcadores.current, marker ];
 
-      nuevoMarcador.current.next({
-        id: marker.id,
-        lng,
-        lat
-      });
+      if( !!!marcador ) {
+        nuevoMarcador.current.next({
+          id: marker.id,
+          lng,
+          lat
+        });
+      }
 
       /** Movimiento de marcador */
       marker.on('drag', ( ev: any ) => {
@@ -55,7 +67,6 @@ export const useMapbox = ( puntoInicial: Coords ) => {
           lat
         });
       });
-
     }
   }, []);
 
@@ -80,8 +91,8 @@ export const useMapbox = ( puntoInicial: Coords ) => {
     const mapaMove = () => {
       const { lat, lng } = mapa.current!.getCenter();
       setCoords({
-        lat: Number( lat.toFixed( 4 ) ),
-        lng: Number( lng.toFixed( 4 ) ),
+        lat : Number( lat.toFixed( 4 ) ),
+        lng : Number( lng.toFixed( 4 ) ),
         zoom: Number( mapa.current?.getZoom().toFixed( 2 ) )
       });
     };
@@ -107,6 +118,7 @@ export const useMapbox = ( puntoInicial: Coords ) => {
     mapaDiv,
     marcadores,
     crearMarcador,
+    actualizarPosicion,
     nuevoMarcador$: nuevoMarcador.current,
     movimientoMarcador$: movimientoMarcador.current,
   };
